@@ -1,0 +1,36 @@
+CREATE TABLE `sys`.`sn1_users` (
+  `id` INT NOT NULL,
+  `name` VARCHAR(45) CHARACTER SET 'utf8' COLLATE 'utf8_general_ci' NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE `sys`.`sn1_agresor` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE `sys`.`sn1_bunker` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE `sys`.`sn1_destroyer` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE `sys`.`sn1_fail` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
+
+CREATE TABLE `sys`.`sn1_farm` (
+  `id` INT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = MyISAM
+DEFAULT CHARACTER SET = utf8;
