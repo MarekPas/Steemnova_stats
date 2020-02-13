@@ -1,5 +1,6 @@
 # Steemnova_stats
-Daily statistics for SteemNova game - https://steemnova.intinte.org/
+Daily statistics for SteemNova game - https://steemnova.intinte.org/.
+
 Results you can see here https://steemit.com/@sentipl
 
 ## Description
