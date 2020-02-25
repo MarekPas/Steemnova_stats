@@ -1,9 +1,9 @@
 import mysql.connector
+from databases import config, local_config
 from os import system
 from datetime import date, timedelta
 
-
-def importer(table):
+def importer(table, indexer):
     sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
     mycursor2 = sql.cursor(buffered=True)
@@ -22,40 +22,18 @@ def importer(table):
             if yp is None:
                 continue
             x = b - yp
-            if x > player_score:
-                player_score = x
-                player_id = a
+            if indexer == "min":
+                if x < player_score:
+                    player_score = x
+                    player_id = a
+            else:
+                if x > player_score:
+                    player_score = x
+                    player_id = a
     mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
     player_name = mycursor.fetchone()[0]
     sql.close()
     return player_name, player_score
-
-
-# VACATIONS
-config = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'database': '',
-    'raise_on_warnings': True
-}
-sql1 = mysql.connector.connect(**config)
-vac_cursor = sql1.cursor()
-vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
-holidays = vac_cursor.fetchone()[0]
-vac_cursor.execute("select count(*) from uni1_users")
-users = vac_cursor.fetchone()[0]
-print("Graczy:", users, "Urlopowiczów:", holidays)
-sql1.close()
-# END OF VACATIONS
-
-local_config = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'database': '',
-    'raise_on_warnings': True
-}
 
 yesterday = str(date.today() - timedelta(days=1))
 today = str(date.today())
@@ -68,12 +46,14 @@ mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
 pointsa = mycursor.fetchall()
 top = {}
 average = []
+deleted_players = ""
 loc_table = "sn1_users"
 for a, b in pointsa:
     if b is None:
         mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
         print(f"Deleted user: {a}")
         sql.commit()
+        deleted_players += "@" + a + "\n"  # formating deleted players into string (each player in new line)
     else:
         mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
         pb = mycursor2.fetchone()[0]
@@ -85,24 +65,32 @@ for a, b in pointsa:
 # Top 3 earners
 val = list(top.values())
 val.sort()
-first = val[-1]
-second = val[-2]
-third = val[-3]
+first, second, third = val[-1], val[-2], val[-3]
 one = list(top.keys())[list(top.values()).index(first)]
 two = list(top.keys())[list(top.values()).index(second)]
 three = list(top.keys())[list(top.values()).index(third)]
 print(one, first, two, second, three, third)
+
 # Top 3 losers
-firstx = val[0]
-secondx = val[1]
-thirdx = val[2]
+firstx, secondx, thirdx = val[0], val[1], val[2]
 onex = list(top.keys())[list(top.values()).index(firstx)]
 twox = list(top.keys())[list(top.values()).index(secondx)]
 threex = list(top.keys())[list(top.values()).index(thirdx)]
 print(onex, firstx, twox, secondx, threex, thirdx)
-
+    
 average = int(sum(average) / len(average))
 print("Średnia:", average)
+
+# VACATIONS
+sql1 = mysql.connector.connect(**config)
+vac_cursor = sql1.cursor()
+vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
+holidays = vac_cursor.fetchone()[0]
+vac_cursor.execute("select count(*) from uni1_users")
+users = vac_cursor.fetchone()[0]
+print("Graczy:", users, "Urlopowiczów:", holidays)
+sql1.close()
+# END OF VACATIONS
 
 # new_players
 mycursor.execute(f"SELECT `name` FROM sn1_users WHERE `{yesterday}` is NULL")
@@ -111,13 +99,20 @@ for i in mycursor.fetchall():
     new_ += i
 new_players = ""
 for k in new_:
-    new_players += "@" + str(k) + "\n"  # formating new players to string (each player in new line)
+    new_players += "@" + str(k) + "\n"  # formating new players into string (each player in new line)
 if new_players == "":
     new_players = "No new players today"
     print("No new players today")
 else:
-    print("New players:\n", new_players)
+    print("New players:\n", new_players.strip)
 sql.close()
+
+# deleted players
+if deleted_players == "":
+    deleted_players = "Noone left us today"
+    print("Noone left us today")
+else:
+    print("Removed/deleted players:\n", deleted_players)
 
 
 class Player:
@@ -125,54 +120,32 @@ class Player:
         self.name = value[0]
         self.score = value[1]
 
-
 # DESTROYER (uses class)
 destroyer = Player()
-destroyer.setName(importer("sn1_destroyer"))
+destroyer.setName(importer("sn1_destroyer", "max"))
 destroyer.score = int(destroyer.score / 1000)
 print("Destroyer:", destroyer.name, destroyer.score)
 
 # FLEET BUILDER
-builder_name, builder_score = importer("sn1_fail")
+builder_name, builder_score = importer("sn1_fail", "max")
 print("Fleet Builder:", builder_name, builder_score)
 
 # BUNKER
-bunker_name, bunker_score = importer("sn1_bunker")
+bunker_name, bunker_score = importer("sn1_bunker", "max")
 print("Bunkerman:", bunker_name, bunker_score)
 
 # AGRESOR
-agresor_name, agresor_score = importer("sn1_agresor")
+agresor_name, agresor_score = importer("sn1_agresor", "max")
 print("Agresor:", agresor_name, agresor_score)
 
 # FARMA
-farma_name, farma_score = importer("sn1_farm")
+farma_name, farma_score = importer("sn1_farm", "max")
 print("Farma:", farma_name, farma_score)
 
 # FAIL
-sql = mysql.connector.connect(**local_config)
-mycursor = sql.cursor()
-mycursor2 = sql.cursor()
-table = "sn1_fail"
-mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
-pointsa = mycursor.fetchall()
-fail_score = 0
-for a, b in pointsa:
-    if b is None:
-        mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
-        print(f"Deleted id: {a}")
-        sql.commit()
-    else:
-        mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
-        yp = mycursor2.fetchone()[0]
-        if yp is None:
-            continue
-        x = b - yp
-        if x < fail_score:
-            fail_score = x
-            fail_id = a
-mycursor.execute(f"SELECT name FROM sn1_users WHERE id={fail_id}")
-fail_name = mycursor.fetchone()[0]
+fail_name, fail_score = importer("sn1_fail", "min")
 print("Fail of the day:", fail_name, fail_score)
+
 sql.close()
 
 with open("result.txt", "w") as plik:
@@ -185,8 +158,9 @@ with open("result.txt", "w") as plik:
 On vacation: {holidays}
 Average points: {average}</br>
 <b>New players:</b>
-{new_players}
-
+{new_players}</br>
+<b>Deleted players:</b>
+{deleted_players}</br>
 
 <b>Top earners of the day:</b>
 Position | Player | Points
