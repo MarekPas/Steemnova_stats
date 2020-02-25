@@ -1,5 +1,6 @@
 import mysql.connector
 from mysql.connector import errorcode
+from databases import config, local_config
 import datetime
 
 
@@ -18,7 +19,7 @@ def updater(loc_table_name, table_name, id_, select, **rest):
     finally:
         for idek, point in points:
             if idek <= maxnewid:
-                # Uncomment two lines below and comment UPDATE line only for first insert
+                #Uncomment two lines below and comment UPDATE line only for first insert
                 # mycursor_loc.execute(f"INSERT INTO {loc_table_name} VALUES({idek}, {point})")
                 # print(f"{idek} {point}")
                 mycursor_loc.execute(f"UPDATE {loc_table_name} SET `{today}` = {point} WHERE id={idek}")
@@ -28,20 +29,6 @@ def updater(loc_table_name, table_name, id_, select, **rest):
                 sql_loc.commit()
         print("Import/update", loc_table_name, "finished!")
 
-local_config = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'database': '',
-    'raise_on_warnings': True
-}
-config = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'database': '',
-    'raise_on_warnings': True
-}
 
 date = datetime.datetime.now()
 today = (date.strftime("%Y-%m-%d"))
