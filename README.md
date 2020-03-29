@@ -12,7 +12,7 @@ Scripts to import and analyze statistics of users of SteemNova game. It's a game
 * mysql.connector library
 
 ## Setup
-First create database and enter loging details into local_config dictionary in file databases.py. To create database use commends from create_databse.txt file.
+First create database and enter loging details into local_config dictionary in databases.py. To create database use commands from create_databse.txt file.
 You also need access to Ogame database (at least SELECTS). Login details enter into config dicitonary in databases.py.
 Execute import.py and generator.py afterwards. The post to post on steemit.com is generated to file result.txt.
 
