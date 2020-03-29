@@ -4,7 +4,7 @@ Daily statistics for SteemNova game - https://steemnova.intinte.org/.
 Results you can see here https://steemit.com/@sentipl
 
 ## Description
-Scripts to import and alayze statistics of users who play SteemNova game. Game is based on OGame.
+Scripts to import and analyze statistics of users of SteemNova game. It can be uses to any game based on Classic OGame engine.
 
 ## Technologies
 * Python 3.7
