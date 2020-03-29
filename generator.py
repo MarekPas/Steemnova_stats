@@ -1,6 +1,5 @@
 import mysql.connector
 from databases import config, local_config
-from os import system
 from datetime import date, timedelta
 
 def importer(table, indexer):
@@ -41,7 +40,6 @@ today = str(date.today())
 sql = mysql.connector.connect(**local_config)
 mycursor = sql.cursor(buffered=True)
 mycursor2 = sql.cursor(buffered=True)
-print("Connection succesful!")
 mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
 pointsa = mycursor.fetchall()
 top = {}
@@ -51,7 +49,6 @@ loc_table = "sn1_users"
 for a, b in pointsa:
     if b is None:
         mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
-        print(f"Deleted user: {a}")
         sql.commit()
         deleted_players += "@" + a + "\n"  # formating deleted players into string (each player in new line)
     else:
@@ -60,11 +57,12 @@ for a, b in pointsa:
         if pb is None:
             continue
         average.append(b)
-        top[a] = b - pb
+        top[a.rstrip()] = b - pb
 
-# Top 3 earners
 val = list(top.values())
 val.sort()
+
+# Top 3 earners
 first, second, third = val[-1], val[-2], val[-3]
 one = list(top.keys())[list(top.values()).index(first)]
 two = list(top.keys())[list(top.values()).index(second)]
@@ -88,7 +86,7 @@ vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
 holidays = vac_cursor.fetchone()[0]
 vac_cursor.execute("select count(*) from uni1_users")
 users = vac_cursor.fetchone()[0]
-print("Graczy:", users, "Urlopowiczów:", holidays)
+print("Players:", users, "On vacation:", holidays)
 sql1.close()
 # END OF VACATIONS
 
@@ -99,12 +97,12 @@ for i in mycursor.fetchall():
     new_ += i
 new_players = ""
 for k in new_:
-    new_players += "@" + str(k) + "\n"  # formating new players into string (each player in new line)
+    new_players += "@" + k + "\n"  # formating new players into string (each player in new line)
 if new_players == "":
     new_players = "No new players today"
     print("No new players today")
 else:
-    print("New players:\n", new_players.strip)
+    print("New players:\n", new_players)
 sql.close()
 
 # deleted players
@@ -120,7 +118,7 @@ class Player:
         self.name = value[0]
         self.score = value[1]
 
-# DESTROYER (uses class)
+# DESTROYER (use classes)
 destroyer = Player()
 destroyer.setName(importer("sn1_destroyer", "max"))
 destroyer.score = int(destroyer.score / 1000)
@@ -148,7 +146,7 @@ print("Fail of the day:", fail_name, fail_score)
 
 sql.close()
 
-with open("result.txt", "w") as plik:
+with open("E:/steemnova/result.txt", "w") as plik:
     plik.write(f"""
 <p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. STEEM account is not required but if you have it you will be rewarded with steem tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
 <center>https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png Daily statistics for <a href="https://steemnova.intinte.org/"><b>SteemNova</b></a> https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png</b>

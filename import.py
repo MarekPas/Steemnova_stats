@@ -13,9 +13,9 @@ def updater(loc_table_name, table_name, id_, select, **rest):
     points = mycursor.fetchall()
     try:
         mycursor_loc.execute(f"ALTER TABLE `{loc_table_name}` ADD COLUMN `{today}` INT NULL AFTER `id`;")
-        print("Import ", loc_table_name, " started")
+        print("Import", loc_table_name, "started")
     except:
-        print("Update ", loc_table_name, " started")
+        print("Update", loc_table_name, "started")
     finally:
         for idek, point in points:
             if idek <= maxnewid:
@@ -86,6 +86,8 @@ try:
     # FARM
     updater("sn1_farm", "uni1_users", "id", "loos")
 
+    print("Import completed")
+    
 except mysql.connector.Error as err:
     if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
         print("Something is wrong with your user name or password")
@@ -96,4 +98,4 @@ except mysql.connector.Error as err:
 else:
     sql.close()
     sql_loc.close()
-    print("Import completed")
+
