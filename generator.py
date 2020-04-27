@@ -6,33 +6,36 @@ def importer(table, indexer):
     sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
     mycursor2 = sql.cursor(buffered=True)
-    mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
-    pointsa = mycursor.fetchall()
-    player_score = 0
-    player_id = None
-    for a, b in pointsa:
-        if b is None:
-            mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
-            print(f"Deleted id: {a}")
-            sql.commit()
-        else:
-            mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
-            yp = mycursor2.fetchone()[0]
-            if yp is None:
-                continue
-            x = b - yp
-            if indexer == "min":
-                if x < player_score:
-                    player_score = x
-                    player_id = a
+    try:
+        mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
+        pointsa = mycursor.fetchall()
+        player_score = 0
+        player_id = None
+        for a, b in pointsa:
+            if b is None:
+##                mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
+##                sql.commit()
+                print("x")
             else:
-                if x > player_score:
-                    player_score = x
-                    player_id = a
-    mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
-    player_name = mycursor.fetchone()[0]
-    sql.close()
-    return player_name, player_score
+                mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
+                yp = mycursor2.fetchone()[0]
+                if yp is None:
+                    continue
+                x = b - yp
+                if indexer == "min":
+                    if x < player_score:
+                        player_score = x
+                        player_id = a
+                else:
+                    if x > player_score:
+                        player_score = x
+                        player_id = a
+        mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
+        player_name = mycursor.fetchone()[0].rstrip()
+        sql.close()
+        return player_name, player_score
+    except:
+        None
 
 yesterday = str(date.today() - timedelta(days=1))
 today = str(date.today())
@@ -40,24 +43,28 @@ today = str(date.today())
 sql = mysql.connector.connect(**local_config)
 mycursor = sql.cursor(buffered=True)
 mycursor2 = sql.cursor(buffered=True)
-mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
-pointsa = mycursor.fetchall()
-top = {}
-average = []
-deleted_players = ""
-loc_table = "sn1_users"
-for a, b in pointsa:
-    if b is None:
-        mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
-        sql.commit()
-        deleted_players += "@" + a + "\n"  # formating deleted players into string (each player in new line)
-    else:
-        mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
-        pb = mycursor2.fetchone()[0]
-        if pb is None:
-            continue
-        average.append(b)
-        top[a.rstrip()] = b - pb
+try:
+    mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
+    pointsa = mycursor.fetchall()
+    top = {}
+    average = []
+    deleted_players = ""
+    loc_table = "sn1_users"
+    for a, b in pointsa:
+        if b is None:
+##            mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
+##            sql.commit()
+            print(f"Deleted player: {a}")
+            deleted_players += "@" + a + "\n"  # formating deleted players into string (each player in new line)
+        else:
+            mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
+            pb = mycursor2.fetchone()[0]
+            if pb is None:
+                continue
+            average.append(b)
+            top[a.rstrip()] = b - pb
+except:
+    None
 
 val = list(top.values())
 val.sort()
@@ -111,6 +118,8 @@ if deleted_players == "":
     print("Noone left us today")
 else:
     print("Removed/deleted players:\n", deleted_players)
+    with open("deleted.txt", "a") as fd:
+        fd.write(f"{today}\n{deleted_players}")
 
 
 class Player:
