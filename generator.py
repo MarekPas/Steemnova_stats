@@ -6,65 +6,112 @@ def importer(table, indexer):
     sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
     mycursor2 = sql.cursor(buffered=True)
-    try:
-        mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
-        pointsa = mycursor.fetchall()
-        player_score = 0
-        player_id = None
-        for a, b in pointsa:
-            if b is None:
-##                mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
-##                sql.commit()
-                print("x")
-            else:
-                mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
-                yp = mycursor2.fetchone()[0]
-                if yp is None:
-                    continue
-                x = b - yp
-                if indexer == "min":
-                    if x < player_score:
-                        player_score = x
-                        player_id = a
-                else:
-                    if x > player_score:
-                        player_score = x
-                        player_id = a
-        mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
-        player_name = mycursor.fetchone()[0].rstrip()
-        sql.close()
-        return player_name, player_score
-    except:
-        None
-
-yesterday = str(date.today() - timedelta(days=1))
-today = str(date.today())
-
-sql = mysql.connector.connect(**local_config)
-mycursor = sql.cursor(buffered=True)
-mycursor2 = sql.cursor(buffered=True)
-try:
-    mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
+    mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
     pointsa = mycursor.fetchall()
-    top = {}
-    average = []
-    deleted_players = ""
-    loc_table = "sn1_users"
+    player_score = 0
+    player_id = None
     for a, b in pointsa:
         if b is None:
-##            mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
-##            sql.commit()
-            print(f"Deleted player: {a}")
-            deleted_players += "@" + a + "\n"  # formating deleted players into string (each player in new line)
+            mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
+            sql.commit()
+            None
         else:
-            mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
-            pb = mycursor2.fetchone()[0]
-            if pb is None:
+            mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
+            yp = mycursor2.fetchone()[0]
+            if yp is None:
                 continue
-            average.append(b)
-            top[a.rstrip()] = b - pb
-except:
-    None
+            x = b - yp
+            if indexer == "min":
+                if x < player_score:
+                    player_score = x
+                    player_id = a
+            else:
+                if x > player_score:
+                    player_score = x
+                    player_id = a
+    mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
+    player_name = mycursor.fetchone()[0].rstrip()
+    sql.close()
+    return player_name, player_score
+
+def deleted_players(deleted):
+    if deleted == "":
+        deleted = "Noone left us today"
+        print("Noone left us today")
+    else:
+        print("Removed/deleted players:\n", deleted)
+        with open("E:/steemnova/deleted.txt", "a") as fd:
+            fd.write(f"{today}\n{deleted_players}")
+
+def vacations():
+    sql1 = mysql.connector.connect(**config)
+    vac_cursor = sql1.cursor()
+    vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
+    holidays = vac_cursor.fetchone()[0]
+    vac_cursor.execute("select count(*) from uni1_users")
+    users = vac_cursor.fetchone()[0]
+    print("Players:", users, "On vacation:", holidays)
+    sql1.close()
+    return users, holidays
+
+def new_users():
+    mycursor.execute(f"SELECT `name` FROM sn1_users WHERE `{yesterday}` is NULL")
+    new_ = ()
+    for i in mycursor.fetchall():
+        new_ += i
+    new_players = ""
+    for k in new_:
+        new_players += "@" + k.rstrip() + "\n"  # formating new players into string (each player in new line)
+    if new_players == "":
+        new_players = "No new players today"
+        print("No new players today\n")
+    else:
+        print("New players:\n", new_players)
+    sql.close()
+    return new_players
+
+def check_last_previous_day():
+    succes = False
+    day = 1
+    while succes == False:
+        try:
+            yesterday = str(date.today() - timedelta(days=day))
+            cursor = sql.cursor(buffered=True)
+            cursor.execute(f"SELECT `{yesterday}` FROM sn1_users")
+            succes = True
+        except:
+            day += 1
+            print(day)
+            continue
+    return yesterday
+
+
+sql = mysql.connector.connect(**local_config)
+
+today = str(date.today())
+yesterday = check_last_previous_day()
+
+mycursor = sql.cursor(buffered=True)
+mycursor2 = sql.cursor(buffered=True)
+mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
+pointsa = mycursor.fetchall()
+top = {}
+average = []
+deleted = ""
+loc_table = "sn1_users"
+for a, b in pointsa:
+    if b is None:
+        mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
+        sql.commit()
+        print(f"Deleted player: {a}")
+        deleted += "@" + a + "\n"  # formating deleted players into string (each player in new line)
+    else:
+        mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
+        pb = mycursor2.fetchone()[0]
+        if pb is None:
+            continue
+        average.append(b)
+        top[a.rstrip()] = b - pb
 
 val = list(top.values())
 val.sort()
@@ -86,48 +133,16 @@ print(onex, firstx, twox, secondx, threex, thirdx)
 average = int(sum(average) / len(average))
 print("Średnia:", average)
 
-# VACATIONS
-sql1 = mysql.connector.connect(**config)
-vac_cursor = sql1.cursor()
-vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
-holidays = vac_cursor.fetchone()[0]
-vac_cursor.execute("select count(*) from uni1_users")
-users = vac_cursor.fetchone()[0]
-print("Players:", users, "On vacation:", holidays)
-sql1.close()
-# END OF VACATIONS
-
-# new_players
-mycursor.execute(f"SELECT `name` FROM sn1_users WHERE `{yesterday}` is NULL")
-new_ = ()
-for i in mycursor.fetchall():
-    new_ += i
-new_players = ""
-for k in new_:
-    new_players += "@" + k + "\n"  # formating new players into string (each player in new line)
-if new_players == "":
-    new_players = "No new players today"
-    print("No new players today")
-else:
-    print("New players:\n", new_players)
-sql.close()
-
-# deleted players
-if deleted_players == "":
-    deleted_players = "Noone left us today"
-    print("Noone left us today")
-else:
-    print("Removed/deleted players:\n", deleted_players)
-    with open("deleted.txt", "a") as fd:
-        fd.write(f"{today}\n{deleted_players}")
-
+users, holidays = vacations()
+new_players = new_users()
+deleted_players(deleted)
 
 class Player:
     def setName(self, value):
         self.name = value[0]
         self.score = value[1]
 
-# DESTROYER (use classes)
+# DESTROYER (class)
 destroyer = Player()
 destroyer.setName(importer("sn1_destroyer", "max"))
 destroyer.score = int(destroyer.score / 1000)
@@ -145,7 +160,7 @@ print("Bunkerman:", bunker_name, bunker_score)
 agresor_name, agresor_score = importer("sn1_agresor", "max")
 print("Agresor:", agresor_name, agresor_score)
 
-# FARMA
+# FARM
 farma_name, farma_score = importer("sn1_farm", "max")
 print("Farma:", farma_name, farma_score)
 
@@ -157,7 +172,7 @@ sql.close()
 
 with open("E:/steemnova/result.txt", "w") as plik:
     plik.write(f"""
-<p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. STEEM account is not required but if you have it you will be rewarded with steem tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
+<p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. STEEM or HIVE account is not required but if you have it, you will be rewarded with STEEM and HIVE tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
 <center>https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png Daily statistics for <a href="https://steemnova.intinte.org/"><b>SteemNova</b></a> https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png</b>
   
 </br>
@@ -165,7 +180,7 @@ with open("E:/steemnova/result.txt", "w") as plik:
 On vacation: {holidays}
 Average points: {average}</br>
 <b>New players:</b>
-{new_players}</br>
+{new_players}
 <b>Deleted players:</b>
 {deleted_players}</br>
 
