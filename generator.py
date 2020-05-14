@@ -39,9 +39,10 @@ def deleted_players(deleted):
         deleted = "Noone left us today"
         print("Noone left us today")
     else:
-        print("Removed/deleted players:\n", deleted)
+        print("Deleted players:\n", deleted)
         with open("E:/steemnova/deleted.txt", "a") as fd:
-            fd.write(f"{today}\n{deleted_players}")
+            fd.write(f"{today}\n{deleted}")
+    return deleted
 
 def vacations():
     sql1 = mysql.connector.connect(**config)
@@ -135,7 +136,7 @@ print("Średnia:", average)
 
 users, holidays = vacations()
 new_players = new_users()
-deleted_players(deleted)
+deleted_players = deleted_players(deleted)
 
 class Player:
     def setName(self, value):
