@@ -4,11 +4,10 @@ from databases import config, local_config
 import datetime
 
 
-def updater(loc_table_name, table_name, id_, select, **rest):
-    if rest != {}:
-        stat_type = rest['stat_type']
+def updater(loc_table_name, table_name, id_, select, stat_type=None):
+    if stat_type == 1:
         mycursor.execute(f"SELECT {id_},{select} FROM {table_name} WHERE stat_type={stat_type} ORDER BY {id_}")
-    else:
+    elif stat_type == None:
         mycursor.execute(f"SELECT {id_},{select} FROM {table_name} ORDER BY {id_}")
     points = mycursor.fetchall()
     try:

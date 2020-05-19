@@ -2,7 +2,7 @@ import mysql.connector
 from databases import config, local_config
 from datetime import date, timedelta
 
-def importer(table, indexer):
+def importer(table, indexer="max"):
     sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
     mycursor2 = sql.cursor(buffered=True)
@@ -25,7 +25,7 @@ def importer(table, indexer):
                 if x < player_score:
                     player_score = x
                     player_id = a
-            else:
+            elif indexer == "max":
                 if x > player_score:
                     player_score = x
                     player_id = a
