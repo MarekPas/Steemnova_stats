@@ -14,7 +14,6 @@ def importer(table, indexer="max"):
         if b is None:
             mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
             sql.commit()
-            None
         else:
             mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
             yp = mycursor2.fetchone()[0]
@@ -34,7 +33,14 @@ def importer(table, indexer="max"):
     sql.close()
     return player_name, player_score
 
-def deleted_players(deleted):
+def deleted_players():
+    sql = mysql.connector.connect(**local_config)
+    delcursor = sql.cursor()
+    delcursor.execute(f"SELECT name FROM {table} WHERE `{today}` IS Null")
+    d = delcursor.fetchall()
+    deleted = ""
+    for name in d:
+        deleted += "@" + name + "\n"    # formating deleted players into string (each player in new line)
     if deleted == "":
         deleted = "Noone left us today"
         print("Noone left us today")
@@ -88,55 +94,34 @@ def check_last_previous_day():
 
 
 sql = mysql.connector.connect(**local_config)
+mycursor = sql.cursor(buffered=True)
 
 today = str(date.today())
 yesterday = check_last_previous_day()
 
-mycursor = sql.cursor(buffered=True)
-mycursor2 = sql.cursor(buffered=True)
-mycursor.execute(f"SELECT name,`{today}` FROM sn1_users")
-pointsa = mycursor.fetchall()
-top = {}
-average = []
-deleted = ""
-loc_table = "sn1_users"
-for a, b in pointsa:
-    if b is None:
-        mycursor.execute(f"DELETE FROM {loc_table} WHERE name = \"{a}\"")
-        sql.commit()
-        print(f"Deleted player: {a}")
-        deleted += "@" + a + "\n"  # formating deleted players into string (each player in new line)
-    else:
-        mycursor2.execute(f"SELECT `{yesterday}` FROM {loc_table} WHERE name=\"{a}\"")
-        pb = mycursor2.fetchone()[0]
-        if pb is None:
-            continue
-        average.append(b)
-        top[a.rstrip()] = b - pb
-
-val = list(top.values())
-val.sort()
+table = "sn1_users"
 
 # Top 3 earners
-first, second, third = val[-1], val[-2], val[-3]
-one = list(top.keys())[list(top.values()).index(first)]
-two = list(top.keys())[list(top.values()).index(second)]
-three = list(top.keys())[list(top.values()).index(third)]
+mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} order by result DESC limit 3")
+top = mycursor.fetchall()
+first, second, third = top[0][1], top[1][1], top[2][1]
+one, two, three = top[0][0], top[1][0], top[2][0]
 print(one, first, two, second, three, third)
 
 # Top 3 losers
-firstx, secondx, thirdx = val[0], val[1], val[2]
-onex = list(top.keys())[list(top.values()).index(firstx)]
-twox = list(top.keys())[list(top.values()).index(secondx)]
-threex = list(top.keys())[list(top.values()).index(thirdx)]
+mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} WHERE `{yesterday}` IS NOT NULL order by result ASC LIMIT 3")
+top = mycursor.fetchall()
+firstx, secondx, thirdx = top[0][1], top[1][1], top[2][1]
+onex, twox, threex = top[0][0], top[1][0], top[2][0]
 print(onex, firstx, twox, secondx, threex, thirdx)
-    
-average = int(sum(average) / len(average))
+
+mycursor.execute(f"SELECT AVG(`{today}`) FROM sn1_users ")
+average = int(mycursor.fetchone()[0])
 print("Średnia:", average)
 
 users, holidays = vacations()
 new_players = new_users()
-deleted_players = deleted_players(deleted)
+deleted_players = deleted_players()
 
 class Player:
     def setName(self, value):
