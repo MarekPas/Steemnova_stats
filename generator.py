@@ -1,35 +1,24 @@
 import mysql.connector
+import time
 from databases import config, local_config
 from datetime import date, timedelta
+
 
 def importer(table, indexer="max"):
     sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
-    mycursor2 = sql.cursor(buffered=True)
-    mycursor.execute(f"SELECT id,`{today}` FROM {table} ORDER BY id")
-    pointsa = mycursor.fetchall()
-    player_score = 0
-    player_id = None
-    for a, b in pointsa:
-        if b is None:
-            mycursor.execute(f"DELETE FROM {table} WHERE id = \"{a}\"")
-            sql.commit()
-        else:
-            mycursor2.execute(f"SELECT `{yesterday}` FROM {table} WHERE id=\"{a}\"")
-            yp = mycursor2.fetchone()[0]
-            if yp is None:
-                continue
-            x = b - yp
-            if indexer == "min":
-                if x < player_score:
-                    player_score = x
-                    player_id = a
-            elif indexer == "max":
-                if x > player_score:
-                    player_score = x
-                    player_id = a
-    mycursor.execute(f"SELECT name FROM sn1_users WHERE id={player_id}")
-    player_name = mycursor.fetchone()[0].rstrip()
+    mycursor.execute(f"DELETE FROM {table} WHERE `{today}` is null")
+    sql.commit()
+    if indexer == "min":
+        mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) ASC LIMIT 1")
+        result = mycursor.fetchone()
+        player_score = result[1]
+        player_name = result[0].rstrip()
+    elif indexer == "max":
+        mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) DESC LIMIT 1")
+        result = mycursor.fetchone()
+        player_score = result[1]
+        player_name = result[0].rstrip()
     sql.close()
     return player_name, player_score
 
@@ -49,6 +38,22 @@ def deleted_players():
         with open("E:/steemnova/deleted.txt", "a") as fd:
             fd.write(f"{today}\n{deleted}")
     return deleted
+
+def warning_players():
+    time_ms = int(time.time())
+    days_ms = time_ms - 7689600    # 89 days
+    sqlx = mysql.connector.connect(**config)
+    mycursor = sqlx.cursor(buffered=True)
+    mycursor.execute(f"select username from uni1_users where onlinetime <={days_ms}")
+    result = mycursor.fetchall()
+    sqlx.close()
+    warned = ""
+    if len(result) > 0:
+        for name in result:
+            warned += " @" + name[0] + ","
+        warned = warned.strip(",")
+        warned += " you may be deleted soon due to inactivity. Maybe it's time to came back to the game? :)"
+    return warned
 
 def vacations():
     sql1 = mysql.connector.connect(**config)
@@ -119,9 +124,12 @@ mycursor.execute(f"SELECT AVG(`{today}`) FROM sn1_users ")
 average = int(mycursor.fetchone()[0])
 print("Średnia:", average)
 
-users, holidays = vacations()
 new_players = new_users()
 deleted_players = deleted_players()
+
+users, holidays = vacations()
+warned = warning_players()
+print("Warning: ", warned)
 
 class Player:
     def setName(self, value):
@@ -211,6 +219,7 @@ Epic fail of the day | Player | Fleet Points
 -- | ------------ | ------------ 
 https://media.tenor.co/images/0cc3ca22b2720ecc97d6f9ce6fd357bc/tenor.gif |@{fail_name}| <center>{fail_score}</center>
 
+{warned}
 </center>
 <center>https://steemnova.intinte.org/</center>
 https://steemnova.intinte.org/styles/resource/images/meta.png
