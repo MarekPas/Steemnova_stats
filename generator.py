@@ -29,7 +29,7 @@ def deleted_players():
     d = delcursor.fetchall()
     deleted = ""
     for name in d:
-        deleted += "@" + name + "\n"    # formating deleted players into string (each player in new line)
+        deleted += "@" + name[0] + "\n"    # formating deleted players into string (each player in new line)
     if deleted == "":
         deleted = "Noone left us today"
         print("Noone left us today")
@@ -37,6 +37,8 @@ def deleted_players():
         print("Deleted players:\n", deleted)
         with open("E:/steemnova/deleted.txt", "a") as fd:
             fd.write(f"{today}\n{deleted}")
+    delcursor.execute(f"DELETE FROM {table} WHERE `{today}` IS Null")
+    sql.commit()
     return deleted
 
 def warning_players():
@@ -52,7 +54,7 @@ def warning_players():
         for name in result:
             warned += " @" + name[0] + ","
         warned = warned.strip(",")
-        warned += " you may be deleted soon due to inactivity. Maybe it's time to came back to the game? :)"
+        warned += " you may be deleted soon due to inactivity. Maybe it's time to come back to the game? :)"
     return warned
 
 def vacations():
@@ -93,8 +95,8 @@ def check_last_previous_day():
             succes = True
         except:
             day += 1
-            print(day)
             continue
+    print(f"Last update was {day} day(s) ago.")
     return yesterday
 
 
@@ -114,7 +116,7 @@ one, two, three = top[0][0], top[1][0], top[2][0]
 print(one, first, two, second, three, third)
 
 # Top 3 losers
-mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} WHERE `{yesterday}` IS NOT NULL order by result ASC LIMIT 3")
+mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} WHERE `{yesterday}` IS NOT NULL order by COALESCE(result, 0) ASC LIMIT 3")
 top = mycursor.fetchall()
 firstx, secondx, thirdx = top[0][1], top[1][1], top[2][1]
 onex, twox, threex = top[0][0], top[1][0], top[2][0]
