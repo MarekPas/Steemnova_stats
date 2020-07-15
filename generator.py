@@ -22,25 +22,6 @@ def importer(table, indexer="max"):
     sql.close()
     return player_name, player_score
 
-def deleted_players():
-    sql = mysql.connector.connect(**local_config)
-    delcursor = sql.cursor()
-    delcursor.execute(f"SELECT name FROM {table} WHERE `{today}` IS Null")
-    d = delcursor.fetchall()
-    deleted = ""
-    for name in d:
-        deleted += "@" + name[0] + "\n"    # formating deleted players into string (each player in new line)
-    if deleted == "":
-        deleted = "Noone left us today"
-        print("Noone left us today")
-    else:
-        print("Deleted players:\n", deleted)
-        with open("E:/steemnova/deleted.txt", "a") as fd:
-            fd.write(f"{today}\n{deleted}")
-    delcursor.execute(f"DELETE FROM {table} WHERE `{today}` IS Null")
-    sql.commit()
-    return deleted
-
 def warning_players():
     time_ms = int(time.time())
     days_ms = time_ms - 7689600    # 89 days
@@ -52,8 +33,12 @@ def warning_players():
     warned = ""
     if len(result) > 0:
         for name in result:
-            warned += " @" + name[0] + ","
+            if " " in name:
+                warned += " " + name[0] + ","
+            else:
+                warned += " @" + name[0] + ","
         warned = warned.strip(",")
+        warned = warned.lstrip(" ")
         warned += " you may be deleted soon due to inactivity. Maybe it's time to come back to the game? :)"
     return warned
 
@@ -75,7 +60,10 @@ def new_users():
         new_ += i
     new_players = ""
     for k in new_:
-        new_players += "@" + k.rstrip() + "\n"  # formating new players into string (each player in new line)
+        if " " in k:
+            new_players += k.rstrip() + "\n"  # formating new players into string (each player in new line)
+        else:
+            new_players += "@" + k.rstrip() + "\n"
     if new_players == "":
         new_players = "No new players today"
         print("No new players today\n")
@@ -83,6 +71,28 @@ def new_users():
         print("New players:\n", new_players)
     sql.close()
     return new_players
+
+def deleted_players():
+    sql = mysql.connector.connect(**local_config)
+    delcursor = sql.cursor()
+    delcursor.execute(f"SELECT name FROM {table} WHERE `{today}` IS Null")
+    d = delcursor.fetchall()
+    deleted = ""
+    for name in d:
+        if " " in name:
+            deleted += name[0] + "\n"
+        else:
+            deleted += "@" + name[0] + "\n"
+    if deleted == "":
+        deleted = "Noone left us today"
+        print("Noone left us today")
+    else:
+        print("Deleted players:\n", deleted)
+        with open("E:/steemnova/deleted.txt", "a") as fd:
+            fd.write(f"{today}\n{deleted}")
+    delcursor.execute(f"DELETE FROM {table} WHERE `{today}` IS Null")
+    sql.commit()
+    return deleted
 
 def check_last_previous_day():
     succes = False
@@ -168,7 +178,7 @@ sql.close()
 
 with open("E:/steemnova/result.txt", "w") as plik:
     plik.write(f"""
-<p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. STEEM or HIVE account is not required but if you have it, you will be rewarded with STEEM and HIVE tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
+<p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. HIVE account is not required but if you have it, you will be rewarded with HIVE tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
 <center>https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png Daily statistics for <a href="https://steemnova.intinte.org/"><b>SteemNova</b></a> https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png</b>
   
 </br>
