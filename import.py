@@ -11,16 +11,16 @@ def updater(loc_table_name, table_name, id_, select, stat_type=None):
         mycursor.execute(f"SELECT {id_},{select} FROM {table_name} ORDER BY {id_}")
     points = mycursor.fetchall()
     try:
-        mycursor_loc.execute(f"ALTER TABLE `{loc_table_name}` ADD COLUMN `{today}` INT NULL AFTER `id`;")
+        mycursor_loc.execute(f"ALTER TABLE `{loc_table_name}` ADD COLUMN `{today}` BIGINT NULL AFTER `id`;")
         print("Import", loc_table_name, "started")
     except:
         print("Update", loc_table_name, "started")
     finally:
         for idek, point in points:
             if idek <= maxnewid:
-                #Uncomment two lines below and comment UPDATE line only for first insert
-                # mycursor_loc.execute(f"INSERT INTO {loc_table_name} VALUES({idek}, {point})")
-                # print(f"{idek} {point}")
+##                Uncomment two lines below and comment UPDATE line only for first insert
+##                mycursor_loc.execute(f"INSERT INTO {loc_table_name} VALUES({idek}, {point})")
+##                print(f"{idek} {point}")
                 mycursor_loc.execute(f"UPDATE {loc_table_name} SET `{today}` = {point} WHERE id={idek}")
                 sql_loc.commit()
             else:
@@ -43,8 +43,7 @@ try:
     maxnewid = ids[len(ids) - 1][0]
 
     sql = mysql.connector.connect(**config)
-    mycursor = sql.cursor(buffered=True)
-    mycursor2 = sql.cursor(buffered=True)
+    mycursor = mycursor2 = sql.cursor(buffered=True)
     print("Connection steemnova database succesful!")
     mycursor.execute("SELECT id_owner,total_points FROM uni1_statpoints WHERE stat_type=1 ORDER BY id_owner")
     points = mycursor.fetchall()
@@ -74,13 +73,13 @@ try:
     updater("sn1_agresor", "uni1_users", "id", "wons")
 
     # BUNKER
-    updater("sn1_bunker", "uni1_statpoints", "id_owner", "defs_points", stat_type=1)
+    updater("sn1_bunker", "uni1_statpoints", "id_owner", "defs_points", stat_type = 1)
 
     # DESTROYER
     updater("sn1_destroyer", "uni1_users", "id", "desunits")
 
     # FAIL and BUILDER
-    updater("sn1_fail", "uni1_statpoints", "id_owner", "fleet_points", stat_type=1)
+    updater("sn1_fail", "uni1_statpoints", "id_owner", "fleet_points", stat_type = 1)
 
     # FARM
     updater("sn1_farm", "uni1_users", "id", "loos")
