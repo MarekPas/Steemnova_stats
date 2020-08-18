@@ -3,6 +3,7 @@ import time
 from databases import config, local_config
 from datetime import date, timedelta
 
+table = "sn1_users"
 
 def importer(table, indexer="max"):
     sql = mysql.connector.connect(**local_config)
@@ -12,13 +13,11 @@ def importer(table, indexer="max"):
     if indexer == "min":
         mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) ASC LIMIT 1")
         result = mycursor.fetchone()
-        player_score = result[1]
-        player_name = result[0].rstrip()
+        player_name, player_score = result[0].rstrip(), result[1]
     elif indexer == "max":
         mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) DESC LIMIT 1")
         result = mycursor.fetchone()
-        player_score = result[1]
-        player_name = result[0].rstrip()
+        player_name, player_score = result[0].rstrip(), result[1]
     sql.close()
     return player_name, player_score
 
@@ -40,6 +39,7 @@ def warning_players():
         warned = warned.strip(",")
         warned = warned.lstrip(" ")
         warned += " you may be deleted soon due to inactivity. Maybe it's time to come back to the game? :)"
+    print("Warning: ", warned)
     return warned
 
 def vacations():
@@ -85,13 +85,14 @@ def deleted_players():
             deleted += "@" + name[0] + "\n"
     if deleted == "":
         deleted = "Noone left us today"
-        print("Noone left us today")
+        print("Noone left us today\n")
     else:
         print("Deleted players:\n", deleted)
         with open("E:/steemnova/deleted.txt", "a") as fd:
             fd.write(f"{today}\n{deleted}")
     delcursor.execute(f"DELETE FROM {table} WHERE `{today}` IS Null")
     sql.commit()
+    sql.close()
     return deleted
 
 def check_last_previous_day():
@@ -116,32 +117,24 @@ mycursor = sql.cursor(buffered=True)
 today = str(date.today())
 yesterday = check_last_previous_day()
 
-table = "sn1_users"
-
 # Top 3 earners
 mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} order by result DESC limit 3")
 top = mycursor.fetchall()
-first, second, third = top[0][1], top[1][1], top[2][1]
-one, two, three = top[0][0], top[1][0], top[2][0]
-print(one, first, two, second, three, third)
+print(top[0][0], top[1][0], top[2][0])
 
 # Top 3 losers
 mycursor.execute(f"SELECT name, `{today}` - `{yesterday}` AS result FROM {table} WHERE `{yesterday}` IS NOT NULL order by COALESCE(result, 0) ASC LIMIT 3")
-top = mycursor.fetchall()
-firstx, secondx, thirdx = top[0][1], top[1][1], top[2][1]
-onex, twox, threex = top[0][0], top[1][0], top[2][0]
-print(onex, firstx, twox, secondx, threex, thirdx)
+bottom = mycursor.fetchall()
+print(bottom[0][0], bottom[1][0], bottom[2][0])
 
 mycursor.execute(f"SELECT AVG(`{today}`) FROM sn1_users ")
 average = int(mycursor.fetchone()[0])
-print("Średnia:", average)
+print("Average:", average)
 
 new_players = new_users()
 deleted_players = deleted_players()
-
 users, holidays = vacations()
 warned = warning_players()
-print("Warning: ", warned)
 
 class Player:
     def setName(self, value):
@@ -193,16 +186,16 @@ Average points: {average}</br>
 <b>Top earners of the day:</b>
 Position | Player | Points
 - | ------------ | -------------
-1.|@{one}|+{first}
-2.|@{two}|+{second}
-3.|@{three}|+{third}
+1.|@{top[0][0]}|+{top[0][1]}
+2.|@{top[1][0]}|+{top[1][1]}
+3.|@{top[2][0]}|+{top[2][1]}
 
 <b>Top losers of the day:</b>
 Position | Player | Points
 - | ------------ | -------------
-1.|@{onex}|{firstx}
-2.|@{twox}|{secondx}
-3.|@{threex}|{thirdx}
+1.|@{bottom[0][0]}|{bottom[0][1]}
+2.|@{bottom[1][0]}|{bottom[1][1]}
+3.|@{bottom[2][0]}|{bottom[2][1]}
 </br>
 <center><h2>https://static.xx.fbcdn.net/images/emoji.php/v9/t9f/1/28/1f3c6.png Achievements https://static.xx.fbcdn.net/images/emoji.php/v9/t9f/1/28/1f3c6.png </h2></center>
 
