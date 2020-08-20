@@ -1,10 +1,10 @@
 # Steemnova_stats
 Daily statistics for SteemNova game - https://steemnova.intinte.org/.
 
-Results you can check on:
-https://ecency.com/@sentipl
-https://peakd.com/@sentipl
-https://steemit.com/@sentipl (not updating anymore).
+You can check results on:
+* https://ecency.com/@sentipl
+* https://peakd.com/@sentipl
+* https://steemit.com/@sentipl (not updating anymore).
 
 ## Description
 Scripts to import and analyze statistics of SteemNova players. It's a game based on Classic OGame engine.
