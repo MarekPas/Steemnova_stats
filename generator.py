@@ -6,83 +6,51 @@ from datetime import date, timedelta
 table = "sn1_users"
 
 def importer(table, indexer="max"):
-    sql = mysql.connector.connect(**local_config)
     mycursor = sql.cursor(buffered=True)
     mycursor.execute(f"DELETE FROM {table} WHERE `{today}` is null")
     sql.commit()
     if indexer == "min":
         mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) ASC LIMIT 1")
         result = mycursor.fetchone()
-        player_name, player_score = result[0].rstrip(), result[1]
     elif indexer == "max":
         mycursor.execute(f"SELECT sn1_users.name, {table}.`{today}` - {table}.`{yesterday}` AS result FROM sn1_users JOIN {table} ON sn1_users.id = {table}.id ORDER BY COALESCE(result, 0) DESC LIMIT 1")
         result = mycursor.fetchone()
-        player_name, player_score = result[0].rstrip(), result[1]
-    sql.close()
-    return player_name, player_score
+    return result[0].strip(), result[1]
 
-def warning_players():
-    time_ms = int(time.time())
-    days_ms = time_ms - 7689600    # 89 days
-    sqlx = mysql.connector.connect(**config)
-    mycursor = sqlx.cursor(buffered=True)
-    mycursor.execute(f"select username from uni1_users where onlinetime <={days_ms}")
-    result = mycursor.fetchall()
-    sqlx.close()
-    warned = ""
-    if len(result) > 0:
-        for name in result:
+def string_with_at(ls, newline=False):  #adding "@" to players who has no " " in nickname
+    result = ""
+    if newline:
+        for name in ls:
             if " " in name:
-                warned += " " + name[0] + ","
+                result += " " + name[0].strip() + "\n"
             else:
-                warned += " @" + name[0] + ","
-        warned = warned.strip(",")
-        warned = warned.lstrip(" ")
-        warned += " you may be deleted soon due to inactivity. Maybe it's time to come back to the game? :)"
-    print("Warning: ", warned)
-    return warned
-
-def vacations():
-    sql1 = mysql.connector.connect(**config)
-    vac_cursor = sql1.cursor()
-    vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
-    holidays = vac_cursor.fetchone()[0]
-    vac_cursor.execute("select count(*) from uni1_users")
-    users = vac_cursor.fetchone()[0]
-    print("Players:", users, "On vacation:", holidays)
-    sql1.close()
-    return users, holidays
+                result += " @" + name[0].strip() + "\n"
+    else:
+        for name in ls:
+            if " " in name:
+                result += " " + name[0].strip() + ","
+            else:
+                result += " @" + name[0].strip() + ","
+    return result
 
 def new_users():
     mycursor.execute(f"SELECT `name` FROM sn1_users WHERE `{yesterday}` is NULL")
     new_ = ()
     for i in mycursor.fetchall():
         new_ += i
-    new_players = ""
-    for k in new_:
-        if " " in k:
-            new_players += k.rstrip() + "\n"  # formating new players into string (each player in new line)
-        else:
-            new_players += "@" + k.rstrip() + "\n"
+    new_players = string_with_at(new_, newline=True)
     if new_players == "":
         new_players = "No new players today"
         print("No new players today\n")
     else:
         print("New players:\n", new_players)
-    sql.close()
     return new_players
 
 def deleted_players():
-    sql = mysql.connector.connect(**local_config)
     delcursor = sql.cursor()
     delcursor.execute(f"SELECT name FROM {table} WHERE `{today}` IS Null")
     d = delcursor.fetchall()
-    deleted = ""
-    for name in d:
-        if " " in name:
-            deleted += name[0] + "\n"
-        else:
-            deleted += "@" + name[0] + "\n"
+    deleted = string_with_at(d, newline=True)
     if deleted == "":
         deleted = "Noone left us today"
         print("Noone left us today\n")
@@ -92,7 +60,6 @@ def deleted_players():
             fd.write(f"{today}\n{deleted}")
     delcursor.execute(f"DELETE FROM {table} WHERE `{today}` IS Null")
     sql.commit()
-    sql.close()
     return deleted
 
 def check_last_previous_day():
@@ -110,6 +77,33 @@ def check_last_previous_day():
     print(f"Last update was {day} day(s) ago.")
     return yesterday
 
+def warning_players():
+    time_ms = int(time.time())
+    days_ms = time_ms - 7689600    # 89 days
+    sql = mysql.connector.connect(**config)
+    mycursor = sql.cursor(buffered=True)
+    mycursor.execute(f"select username from uni1_users where onlinetime <={days_ms}")
+    result = mycursor.fetchall()
+    sql.close()
+    warned = ""
+    if len(result) > 0:
+        warned = string_with_at(result)
+        warned = warned.strip(",")
+        warned = warned.lstrip(" ")
+        warned += " you may be deleted soon due to inactivity. Maybe it's time to come back to the game? :)"
+    print("Warning: ", warned)
+    return warned
+
+def vacations():
+    sql = mysql.connector.connect(**config)
+    vac_cursor = sql.cursor()
+    vac_cursor.execute("select count(*) from uni1_users where urlaubs_modus=1")
+    holidays = vac_cursor.fetchone()[0]
+    vac_cursor.execute("select count(*) from uni1_users")
+    users = vac_cursor.fetchone()[0]
+    print("Players:", users, "On vacation:", holidays)
+    sql.close()
+    return users, holidays
 
 sql = mysql.connector.connect(**local_config)
 mycursor = sql.cursor(buffered=True)
@@ -133,19 +127,11 @@ print("Average:", average)
 
 new_players = new_users()
 deleted_players = deleted_players()
-users, holidays = vacations()
-warned = warning_players()
 
-class Player:
-    def setName(self, value):
-        self.name = value[0]
-        self.score = value[1]
-
-# DESTROYER (class)
-destroyer = Player()
-destroyer.setName(importer("sn1_destroyer", "max"))
-destroyer.score = int(destroyer.score / 1000)
-print("Destroyer:", destroyer.name, destroyer.score)
+# DESTROYER
+destroyer_name, destroyer_score = importer("sn1_destroyer", "max")
+destroyer_score = int(destroyer_score / 1000)
+print("Destroyer:", destroyer_name, destroyer_score)
 
 # FLEET BUILDER
 builder_name, builder_score = importer("sn1_fail", "max")
@@ -169,10 +155,15 @@ print("Fail of the day:", fail_name, fail_score)
 
 sql.close()
 
+users, holidays = vacations()
+warned = warning_players()
+
+day = time.strftime('%d.%m.%Y')
+
 with open("E:/steemnova/result.txt", "w") as plik:
     plik.write(f"""
-<p>SteemNova is a space-war strategy game based on classic OGame <a href="https://en.wikipedia.org/wiki/Massively_multiplayer_online_game">MMO</a> with hundreds of players who compete to each other trying to be the best in universe. Everything what you need to play is a standard browser. HIVE account is not required but if you have it, you will be rewarded with HIVE tokens just for playing the game. The better you are - the more tokens you get. Join today by clicking link below!</p>
-<center>https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png Daily statistics for <a href="https://steemnova.intinte.org/"><b>SteemNova</b></a> https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png</b>
+<center><p>SteemNova - Daily statistics and achievements {day}</p>
+https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png Daily statistics for <a href="https://steemnova.intinte.org/"><b>SteemNova</b></a> https://static.xx.fbcdn.net/images/emoji.php/v9/tbd/1/28/1f4f6.png</b>
   
 </br>
 <b>Players:</b> {users}
@@ -202,7 +193,7 @@ Position | Player | Points
 
 Destroyer of the day | Player | Destroyed Fleet Points
 -- | ------------ | ------------ 
-https://media.tenor.co/images/89ba44847971c53223704fe9323caacb/tenor.gif |@{destroyer.name}| <center>{destroyer.score}</center>
+https://media.tenor.co/images/89ba44847971c53223704fe9323caacb/tenor.gif |@{destroyer_name}| <center>{destroyer_score}</center>
 
 Fleet Builder of the day | Player | Fleet points
 -- | ------------ | ------------ 
